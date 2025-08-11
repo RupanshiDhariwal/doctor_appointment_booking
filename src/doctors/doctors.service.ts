@@ -3,19 +3,42 @@ import { pool } from '../db';
 
 @Injectable()
 export class DoctorsService {
-  async list({ page = 1, limit = 10, specialization }: { page: number; limit: number; specialization?: string }) {
-    const offset = (page - 1) * limit;
-    const params = [];
-    let where = '';
-    if (specialization) {
-      params.push(`%${specialization}%`);
-      where = `WHERE specialization ILIKE $${params.length}`;
-    }
-    params.push(limit, offset);
-    const q = `SELECT * FROM doctors ${where} ORDER BY name LIMIT $${params.length-1} OFFSET $${params.length}`;
-    const res = await pool.query(q, params);
-    return res.rows;
+  async list({
+  page = 1,
+  limit = 10,
+  specialization,
+}: { page: number; limit: number; specialization?: string }) {
+  const offset = (page - 1) * limit;
+  const params: any[] = [];
+  let where = '';
+
+  // Filter by specialization if provided
+  if (specialization) {
+    params.push(`%${specialization}%`);
+    where = `WHERE specialization ILIKE $${params.length}`;
   }
+
+  // Count total rows for pagination
+  const countQuery = `SELECT COUNT(*) AS total FROM doctors ${where}`;
+  const countResult = await pool.query(countQuery, params);
+  const total = parseInt(countResult.rows[0].total, 10);
+
+  // Add limit and offset
+  params.push(limit, offset);
+  const q = `SELECT * FROM doctors ${where} ORDER BY name LIMIT $${params.length - 1} OFFSET $${params.length}`;
+  const res = await pool.query(q, params);
+
+  return {
+    data: res.rows,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
 
   async getById(id: string) {
     const r = await pool.query('SELECT * FROM doctors WHERE id = $1', [id]);
