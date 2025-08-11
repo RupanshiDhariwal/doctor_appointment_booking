@@ -1,4 +1,3 @@
--- Run in Postgres: psql $DATABASE_URL -f migrations/001_init.sql
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS doctors (
